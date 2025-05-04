@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 export default function Dashboard() {
+  const baseURL = "http://localhost:5000";
   const [activeTab, setActiveTab] = useState("projects");
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -38,6 +39,8 @@ export default function Dashboard() {
   };
 
   const handleFileChange = async (e) => {
+    
+    document.getElementById('importexcel').disabled = true;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -46,16 +49,18 @@ export default function Dashboard() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/tasks/import",
+        `${baseURL}/tasks/import`,
         formData
       );
+      setSucessShowModal(true);
       alert(
         `Imported: ${res.data.success_count}, Failed: ${res.data.failed_count}`
       );
-      console.log("Failures:", res.data.failed_details);
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("Import failed!");
+      document.getElementById('importexcel').disabled = false;
+    } catch (error) {
+      seterror(error.message);
+      setFailureShowModal(true);
+      document.getElementById('importexcel').disabled = false;
     }
   };
 
@@ -98,27 +103,26 @@ export default function Dashboard() {
   const fetchProjects = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/projects?page=${projectcurrentPage}`
+        `${baseURL}/projects?page=${projectcurrentPage}`
       );
       setProjects(res.data.details);
       setprojectLastPage(res.data.lastpage);
-    } catch (err) {
-      console.error("Failed to fetch projects:", err);
+    } catch (error) {
+      seterror(error.message);
+      setFailureShowModal(true);
     }
   };
 
   const ProjectSave = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/projects", {
+      const response = await axios.post(`${baseURL}/projects`, {
         name: projectName,
       });
       fetchProjects();
-      console.log("Project created:", response.data);
       setProjectShowModal(false);
       setSucessShowModal(true);
       setProjectName("");
     } catch (error) {
-      console.error("Error creating project:", error);
       seterror(error.message);
       setProjectShowModal(false);
       setFailureShowModal(true);
@@ -136,7 +140,7 @@ export default function Dashboard() {
   const UpdateSave = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:5000/tasks/${taskid}`,
+         `${baseURL}/tasks/${taskid}`,
         {
           name: taskName,
           status: status,
@@ -148,7 +152,7 @@ export default function Dashboard() {
       setTaskShowModal(false);
       setSucessShowModal(true);
       settaskid(null); // Close modal
-    } catch (err) {
+    } catch (error) {
       seterror(error.message);
       setTaskShowModal(false);
       setFailureShowModal(true);
@@ -156,7 +160,7 @@ export default function Dashboard() {
   };
   const TaskSave = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/tasks", {
+      const response = await axios.post( `${baseURL}/tasks`, {
         name: taskName,
         status: status,
         project_id: selectedProjectId,
@@ -175,37 +179,41 @@ export default function Dashboard() {
   const fetchTasks = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/tasks?page=${taskcurrentPage}`
+         `${baseURL}/tasks?page=${taskcurrentPage}`
       );
       setTasks(res.data.details);
       settaskLastPage(res.data.lastpage);
       console.log(res.data);
-    } catch (err) {
-      console.error("Failed to fetch tasks:", err);
+    } catch (error) {
+      seterror(error.message);
+      setFailureShowModal(true);
     }
   };
 
   const fetchAllTasks = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/tasks`);
+      document.getElementById("alltask").disabled = true;
+      const res = await axios.get( `${baseURL}/tasks`);
       exportTasksToExcel(res.data.details);
       setSucessShowModal(true);
-    } catch (err) {
-      console.error("Failed to fetch tasks:", err);
+      document.getElementById("alltask").disabled = false;
+    } catch (error) {
       seterror(error.message);
       setFailureShowModal(true);
+      document.getElementById("alltask").disabled = false;
     }
   };
 
   const fetchUsers = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/users?page=${usercurrentPage}`
+         `${baseURL}/users?page=${usercurrentPage}`
       );
       setUsers(res.data.details);
       setUserLastPage(res.data.lastpage);
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
+    } catch (error) {
+      seterror(error.message);
+      setFailureShowModal(true);
     }
   };
   const modalStyle = {
@@ -349,15 +357,16 @@ export default function Dashboard() {
                
                 Add Task
               </button>
-              <button onClick={fetchAllTasks} style={normal_btn}>
+              <button id="alltask" onClick={fetchAllTasks} style={normal_btn}>
                 Export to Excel
               </button>
 
-              <button onClick={handleButtonClick} style={normal_btn}>
+              <button id="importexcel" onClick={handleButtonClick} style={normal_btn}>
                 Import Excel
               </button>
 
               <input
+                
                 type="file"
                 ref={fileInputRef}
                 accept=".xlsx, .xls"
@@ -549,14 +558,14 @@ export default function Dashboard() {
         <div style={modalStyle}>
           <h3>Process Sucessfull</h3>
 
-          <button onClick={() => setSucessShowModal(false)}>Close</button>
+          <button style={{normal_btn}} onClick={() => setSucessShowModal(false)}>Close</button>
         </div>
       )}
       {failureshowModal && (
         <div style={modalStyle}>
           <h3>Process Failed</h3>
           <h4>{error}</h4>
-          <button onClick={() => setFailureShowModal(false)}>Close</button>
+          <button style={{normal_btn}} onClick={() => setFailureShowModal(false)}>Close</button>
         </div>
       )}
     </div>

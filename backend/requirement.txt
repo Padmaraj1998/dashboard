@@ -5,3 +5,4 @@ openpyxl
 pymysql
 python-dotenv
 flask_migrate
+pandas
